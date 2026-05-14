@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wedding Seating</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Georgia', serif;
+    background: #fdf8f2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    color: #3a2c1e;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    font-weight: normal;
+    letter-spacing: 0.06em;
+    color: #6b4c2a;
+  }
+
+  header p {
+    margin-top: 8px;
+    font-size: 0.95rem;
+    color: #8a6d50;
+    font-style: italic;
+  }
+
+  .search-wrap {
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    margin-bottom: 32px;
+  }
+
+  #search {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 1.05rem;
+    font-family: inherit;
+    border: 1.5px solid #c9a97a;
+    border-radius: 40px;
+    background: #fff;
+    color: #3a2c1e;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #search:focus {
+    border-color: #9b6f3b;
+    box-shadow: 0 0 0 3px rgba(155, 111, 59, 0.15);
+  }
+
+  #search::placeholder { color: #b89e82; }
+
+  #result {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid #e2cdb0;
+    border-radius: 16px;
+    padding: 32px 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(100,70,30,0.07);
+  }
+
+  .card .guest-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #6b4c2a;
+    margin-bottom: 8px;
+  }
+
+  .card .table-label {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #9b6f3b;
+    margin: 8px 0 16px;
+    letter-spacing: 0.04em;
+  }
+
+  .card .also-seated {
+    font-size: 0.82rem;
+    color: #9a8068;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e2cdb0;
+    margin: 14px 0;
+  }
+
+  .multi-hint {
+    font-size: 0.85rem;
+    color: #9a8068;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+
+  .no-result {
+    color: #9a8068;
+    font-style: italic;
+    padding: 20px 0;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#10022; Wedding Seating &#10022;</h1>
+  <p>Type your name to find your table</p>
+</header>
+
+<div class="search-wrap">
+  <input id="search" type="text" placeholder="Your name&hellip;" autocomplete="off" autocorrect="off" spellcheck="false">
+</div>
+
+<div id="result"></div>
+
+<script>
+const GUESTS = {
+  "Asaf Moav": 1,
+  "Noa Shalev": 2,
+  "Erez Zimerman": 3,
+  "Keith Singer": 4,
+  "Jon Frydman": 5,
+  "Haim Milgrom": 6,
+  "Aidan Singer": 7,
+  "Mikey More": 8,
+  "Brendan Anapoell": 9,
+  "Gideon Abramowitz": 10,
+  "Berel Gurevitch": 11,
+  "Joel Blumstein": 12,
+  "Sarit Moav": 1,
+  "Ido Shalev": 2,
+  "Sara Zimerman": 3,
+  "Mishelle Singer": 4,
+  "Terry Frydman": 5,
+  "Rita Milgrom": 6,
+  "Dani Rauchman": 7,
+  "Cameron Hess": 8,
+  "Katherine Buchholz": 9,
+  "Meredith Harris": 10,
+  "Yossi Drizin": 11,
+  "Ben Selinger": 12,
+  "Omri Moav": 1,
+  "Ofri Tal": 2,
+  "Orit Zimerman": 3,
+  "Eli Singer": 4,
+  "Jonah Frydman": 5,
+  "Eric Ketayi": 6,
+  "Lauren Busch": 7,
+  "Gabi Feuer": 8,
+  "Eli Perlmutter": 9,
+  "Sam Orloff": 10,
+  "Yossi Drizin +1": 11,
+  "Joel Shapiro": 12,
+  "Yarden Moav": 1,
+  "Mika Shalev": 2,
+  "Alon Zimerman": 3,
+  "Sara Singer": 4,
+  "Josh Frydman": 5,
+  "Miri Ketayi": 6,
+  "Shawn Arbeiter": 7,
+  "Andy Kaplan": 8,
+  "Lucy Keller": 9,
+  "Jonah Salita": 10,
+  "Courtney Rauchman": 11,
+  "Elan Perczek": 12,
+  "Maayan Moav": 1,
+  "Yifat Azulay": 2,
+  "Luis Frenkel": 3,
+  "Craig Singer": 4,
+  "Josh Frydman +1": 5,
+  "Yoni Ketayi": 6,
+  "Josh Wallach": 7,
+  "Nick Mufson": 8,
+  "Jennifer Serwin": 9,
+  "Sarah Yadidian": 10,
+  "Julien Reiman": 11,
+  "Sammy Gotsman": 12,
+  "Ofir Moav": 1,
+  "Maya Sela": 2,
+  "Mirit Frenkel": 3,
+  "Marla Singer": 4,
+  "Jonah Frydman +1": 5,
+  "Alona Markowitz": 6,
+  "Romi Wallach": 7,
+  "Ethan Weksler": 8,
+  "Spencer Derecat": 9,
+  "Eliana Martin": 10,
+  "Daniel Rutenberg": 11,
+  "Sarah Miller": 12,
+  "Ben Levi": 1,
+  "Inbar Sela": 2,
+  "Keren Zimerman": 3,
+  "Fred Singer": 4,
+  "Adam Busch": 5,
+  "Irit Shalev": 6,
+  "Doug Walner": 7,
+  "Ali Price": 8,
+  "Sydney Naftolin": 9,
+  "Daniel Michelson": 10,
+  "Michelle Rutenberg": 11,
+  "Felipe Lombello": 12,
+  "Ziva Levi": 1,
+  "Pazit Sela": 2,
+  "Amit Zimerman": 3,
+  "Karen Singer": 4,
+  "Paola Busch": 5,
+  "Itzik Yadgar": 6,
+  "Jennifer Walner": 7,
+  "Brendan Hogan": 8,
+  "Nicole Brautigam": 9,
+  "Rachel Galen": 10,
+  "Maya Geller-Montague": 11,
+  "Deanna Lombello": 12,
+  "Gili Levi": 1,
+  "Aviva Neginsky": 4,
+  "Steven Trachtenberg": 7,
+  "Katie Hurdman": 8,
+  "Jacob Sclar": 9,
+  "Justin Rubin": 10,
+  "Morris Esquenazi": 12,
+  "Roni Levi": 1,
+  "Alexander Neginsky": 4,
+  "Melissa Trachtenberg": 7,
+  "Eliza Simon": 9,
+  "Isabelle York": 12
+};
+const TABLES = {
+  "1": [
+    "Asaf Moav",
+    "Ben Levi",
+    "Gili Levi",
+    "Maayan Moav",
+    "Ofir Moav",
+    "Omri Moav",
+    "Roni Levi",
+    "Sarit Moav",
+    "Yarden Moav",
+    "Ziva Levi"
+  ],
+  "2": [
+    "Ido Shalev",
+    "Inbar Sela",
+    "Maya Sela",
+    "Mika Shalev",
+    "Noa Shalev",
+    "Ofri Tal",
+    "Pazit Sela",
+    "Yifat Azulay"
+  ],
+  "3": [
+    "Alon Zimerman",
+    "Amit Zimerman",
+    "Erez Zimerman",
+    "Keren Zimerman",
+    "Luis Frenkel",
+    "Mirit Frenkel",
+    "Orit Zimerman",
+    "Sara Zimerman"
+  ],
+  "4": [
+    "Alexander Neginsky",
+    "Aviva Neginsky",
+    "Craig Singer",
+    "Eli Singer",
+    "Fred Singer",
+    "Karen Singer",
+    "Keith Singer",
+    "Marla Singer",
+    "Mishelle Singer",
+    "Sara Singer"
+  ],
+  "5": [
+    "Adam Busch",
+    "Jon Frydman",
+    "Jonah Frydman",
+    "Jonah Frydman +1",
+    "Josh Frydman",
+    "Josh Frydman +1",
+    "Paola Busch",
+    "Terry Frydman"
+  ],
+  "6": [
+    "Alona Markowitz",
+    "Eric Ketayi",
+    "Haim Milgrom",
+    "Irit Shalev",
+    "Itzik Yadgar",
+    "Miri Ketayi",
+    "Rita Milgrom",
+    "Yoni Ketayi"
+  ],
+  "7": [
+    "Aidan Singer",
+    "Dani Rauchman",
+    "Doug Walner",
+    "Jennifer Walner",
+    "Josh Wallach",
+    "Lauren Busch",
+    "Melissa Trachtenberg",
+    "Romi Wallach",
+    "Shawn Arbeiter",
+    "Steven Trachtenberg"
+  ],
+  "8": [
+    "Ali Price",
+    "Andy Kaplan",
+    "Brendan Hogan",
+    "Cameron Hess",
+    "Ethan Weksler",
+    "Gabi Feuer",
+    "Katie Hurdman",
+    "Mikey More",
+    "Nick Mufson"
+  ],
+  "9": [
+    "Brendan Anapoell",
+    "Eli Perlmutter",
+    "Eliza Simon",
+    "Jacob Sclar",
+    "Jennifer Serwin",
+    "Katherine Buchholz",
+    "Lucy Keller",
+    "Nicole Brautigam",
+    "Spencer Derecat",
+    "Sydney Naftolin"
+  ],
+  "10": [
+    "Daniel Michelson",
+    "Eliana Martin",
+    "Gideon Abramowitz",
+    "Jonah Salita",
+    "Justin Rubin",
+    "Meredith Harris",
+    "Rachel Galen",
+    "Sam Orloff",
+    "Sarah Yadidian"
+  ],
+  "11": [
+    "Berel Gurevitch",
+    "Courtney Rauchman",
+    "Daniel Rutenberg",
+    "Julien Reiman",
+    "Maya Geller-Montague",
+    "Michelle Rutenberg",
+    "Yossi Drizin",
+    "Yossi Drizin +1"
+  ],
+  "12": [
+    "Ben Selinger",
+    "Deanna Lombello",
+    "Elan Perczek",
+    "Felipe Lombello",
+    "Isabelle York",
+    "Joel Blumstein",
+    "Joel Shapiro",
+    "Morris Esquenazi",
+    "Sammy Gotsman",
+    "Sarah Miller"
+  ]
+};
+
+const searchEl = document.getElementById('search');
+const resultEl = document.getElementById('result');
+
+function normalize(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function score(name, query) {
+  const n = normalize(name);
+  const q = normalize(query);
+  if (n === q) return 100;
+  if (n.startsWith(q)) return 80;
+  if (n.includes(q)) return 60;
+  const queryWords = q.split(' ');
+  const nameWords = n.split(' ');
+  const allMatch = queryWords.every(qw => nameWords.some(nw => nw.startsWith(qw)));
+  if (allMatch) return 70;
+  const anyMatch = queryWords.some(qw => nameWords.some(nw => nw.startsWith(qw)));
+  if (anyMatch) return 40;
+  return 0;
+}
+
+function render(query) {
+  const q = query.trim();
+  if (q.length < 2) { resultEl.innerHTML = ''; return; }
+
+  const hits = Object.entries(GUESTS)
+    .map(([name, table]) => ({ name, table, s: score(name, q) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 5);
+
+  if (!hits.length) {
+    resultEl.innerHTML = '<p class="no-result">No guest found &mdash; try a different spelling.</p>';
+    return;
+  }
+
+  if (hits.length > 1) {
+    resultEl.innerHTML = '<p class="multi-hint">Multiple matches &mdash; keep typing to narrow down.</p>' +
+      hits.map(h => cardHTML(h.name, h.table, false)).join('');
+  } else {
+    resultEl.innerHTML = cardHTML(hits[0].name, hits[0].table, true);
+  }
+}
+
+function cardHTML(name, tableNum, showTablemates) {
+  const tablemates = (TABLES[tableNum] || []).filter(n => n !== name);
+  const tablemateStr = showTablemates && tablemates.length
+    ? '<hr class="divider"><div class="also-seated">Also at your table:<br>' + tablemates.join(' &bull; ') + '</div>'
+    : '';
+  return `<div class="card">
+    <div class="guest-name">${name}</div>
+    <div class="table-label">Table ${tableNum}</div>
+    ${tablemateStr}
+  </div>`;
+}
+
+searchEl.addEventListener('input', () => render(searchEl.value));
+searchEl.focus();
+</script>
+</body>
+</html>
