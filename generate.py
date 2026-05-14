@@ -16,11 +16,53 @@ from pathlib import Path
 EXCEL_FILE = "Seating Chart.xlsx"
 OUTPUT_FILE = "index.html"
 
+# Mediterranean tile SVG — encodes # as %23 so it can be embedded in a CSS url()
+TILE_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>"
+    "<rect width='100' height='100' fill='%23ede8d4'/>"
+    # Corner triangles
+    "<polygon points='0,0 28,0 0,28' fill='%232a4a8a'/>"
+    "<polygon points='100,0 72,0 100,28' fill='%232a4a8a'/>"
+    "<polygon points='0,100 28,100 0,72' fill='%232a4a8a'/>"
+    "<polygon points='100,100 72,100 100,72' fill='%232a4a8a'/>"
+    # White circles + dot in corners
+    "<circle cx='10' cy='10' r='7' fill='%23ede8d4'/>"
+    "<circle cx='90' cy='10' r='7' fill='%23ede8d4'/>"
+    "<circle cx='10' cy='90' r='7' fill='%23ede8d4'/>"
+    "<circle cx='90' cy='90' r='7' fill='%23ede8d4'/>"
+    "<circle cx='10' cy='10' r='3' fill='%232a4a8a'/>"
+    "<circle cx='90' cy='10' r='3' fill='%232a4a8a'/>"
+    "<circle cx='10' cy='90' r='3' fill='%232a4a8a'/>"
+    "<circle cx='90' cy='90' r='3' fill='%232a4a8a'/>"
+    # Outer octagonal frame
+    "<polygon points='28,1 72,1 99,28 99,72 72,99 28,99 1,72 1,28' "
+    "fill='none' stroke='%232a4a8a' stroke-width='2.5'/>"
+    # Inner octagonal frame
+    "<polygon points='34,10 66,10 90,34 90,66 66,90 34,90 10,66 10,34' "
+    "fill='none' stroke='%232a4a8a' stroke-width='1'/>"
+    # Four petals (cross/flower)
+    "<ellipse cx='50' cy='30' rx='7' ry='13' fill='%232a4a8a'/>"
+    "<ellipse cx='50' cy='70' rx='7' ry='13' fill='%232a4a8a'/>"
+    "<ellipse cx='30' cy='50' rx='13' ry='7' fill='%232a4a8a'/>"
+    "<ellipse cx='70' cy='50' rx='13' ry='7' fill='%232a4a8a'/>"
+    # Center medallion
+    "<circle cx='50' cy='50' r='16' fill='%232a4a8a'/>"
+    "<circle cx='50' cy='50' r='10' fill='%23ede8d4'/>"
+    "<circle cx='50' cy='50' r='5' fill='%232a4a8a'/>"
+    # Diagonal accent lines in corners
+    "<line x1='34' y1='34' x2='42' y2='42' stroke='%232a4a8a' stroke-width='1.5'/>"
+    "<line x1='66' y1='34' x2='58' y2='42' stroke='%232a4a8a' stroke-width='1.5'/>"
+    "<line x1='34' y1='66' x2='42' y2='58' stroke='%232a4a8a' stroke-width='1.5'/>"
+    "<line x1='66' y1='66' x2='58' y2='58' stroke='%232a4a8a' stroke-width='1.5'/>"
+    "</svg>"
+)
+
+TILE_URL = f"data:image/svg+xml,{TILE_SVG}"
+
 
 def parse_seating_chart(path: str) -> dict[str, int]:
     df = pd.read_excel(path, sheet_name="Seating Chart", header=None)
 
-    # Find the row that contains "TABLE 1"
     header_row = None
     for i, row in df.iterrows():
         if any(str(v).strip().upper() == "TABLE 1" for v in row if pd.notna(v)):
@@ -29,7 +71,6 @@ def parse_seating_chart(path: str) -> dict[str, int]:
     if header_row is None:
         sys.exit("Could not find table header row in Excel file.")
 
-    # Map column index → table number
     col_to_table: dict[int, int] = {}
     for col_idx, val in enumerate(df.iloc[header_row]):
         if pd.isna(val):
@@ -38,23 +79,17 @@ def parse_seating_chart(path: str) -> dict[str, int]:
         if m:
             col_to_table[col_idx] = int(m.group(1))
 
-    # Read guest rows below the header until we hit a non-name row
     guest_to_table: dict[str, int] = {}
     row = header_row + 1
     while row < len(df):
-        all_non_name = True
         for col_idx, table_num in col_to_table.items():
             val = df.iat[row, col_idx]
             if pd.isna(val):
                 continue
             s = str(val).strip()
-            # Stop when we hit summary rows (pure numbers, status symbols, etc.)
             if re.match(r"^\d+$", s) or s.startswith("✓") or s.startswith("guests") or s.startswith("seats"):
                 continue
-            # It's a guest name
-            all_non_name = False
             guest_to_table[s] = table_num
-        # Stop if the entire row looks like a summary row
         row_vals = [str(df.iat[row, c]).strip() for c in col_to_table if pd.notna(df.iat[row, c])]
         if row_vals and all(re.match(r"^\d+$", v) or v.startswith("✓") or "seats" in v or v == "guests" for v in row_vals):
             break
@@ -76,145 +111,153 @@ HTML_TEMPLATE = """\
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jake & Shir's Wedding</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+<title>Jake &amp; Shir's Wedding</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400&display=swap" rel="stylesheet">
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
 
   body {{
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    background: #f0f4f8;
+    background: #f0ebe0;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 20px 60px;
-    color: #1a2e44;
+    color: #2a4a8a;
   }}
 
-  /* ── Hero banner ── */
-  .hero {{
-    width: 100vw;
-    background: linear-gradient(160deg, #0d3b6e 0%, #1a5fa8 55%, #2e86c1 100%);
+  /* ── Tile strips ── */
+  .tile-strip {{
+    width: 100%;
+    background: #ede8d4 url('{tile_url}') repeat-x center;
+    background-size: 100px 100px;
+    height: 100px;
+    flex-shrink: 0;
+  }}
+
+  /* ── Main content ── */
+  main {{
+    flex: 1;
+    width: 100%;
+    max-width: 480px;
+    padding: 36px 28px 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding: 52px 24px 44px;
-    margin-bottom: 40px;
-    position: relative;
-    overflow: hidden;
   }}
 
-  .hero::before {{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='28' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E") repeat;
-    pointer-events: none;
+  .bh {{
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.9rem;
+    color: #2a4a8a;
+    opacity: 0.5;
+    margin-bottom: 18px;
+    letter-spacing: 0.08em;
   }}
 
-  .hero-eyebrow {{
-    font-family: 'Jost', sans-serif;
-    font-weight: 300;
-    font-size: 0.7rem;
-    letter-spacing: 0.28em;
-    text-transform: uppercase;
-    color: #a8d4f5;
-    margin-bottom: 14px;
-  }}
-
-  .hero h1 {{
+  h1 {{
     font-family: 'Cormorant Garamond', serif;
     font-weight: 400;
-    font-size: clamp(2.4rem, 7vw, 3.6rem);
-    color: #ffffff;
-    line-height: 1.15;
-    letter-spacing: 0.02em;
-    margin-bottom: 10px;
+    font-size: clamp(3rem, 11vw, 4.4rem);
+    line-height: 1.05;
+    color: #2a4a8a;
+    margin-bottom: 6px;
   }}
 
-  .hero h1 em {{
-    font-style: italic;
-    color: #d4eaf7;
+  h1 em {{ font-style: italic; }}
+
+  .ornament {{
+    color: #2a4a8a;
+    opacity: 0.35;
+    font-size: 0.7rem;
+    letter-spacing: 0.5em;
+    margin: 10px 0 12px;
   }}
 
-  .hero-sub {{
+  .wedding-date {{
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    font-size: 0.88rem;
-    color: #a8d4f5;
-    letter-spacing: 0.12em;
-    margin-top: 6px;
+    font-size: 0.68rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #2a4a8a;
+    margin-bottom: 5px;
   }}
 
-  .hero-divider {{
-    width: 48px;
-    height: 1px;
-    background: rgba(168, 212, 245, 0.5);
-    margin: 18px auto 0;
+  .wedding-location {{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: #2a4a8a;
+    opacity: 0.75;
+    margin-bottom: 32px;
   }}
 
-  /* ── Search area ── */
-  .search-section {{
+  .section-rule {{
     width: 100%;
-    max-width: 500px;
-    text-align: center;
-    margin-bottom: 10px;
+    border: none;
+    border-top: 1px solid rgba(42,74,138,0.2);
+    margin: 0 0 28px;
   }}
 
+  /* ── Search ── */
   .search-label {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.15rem;
     font-style: italic;
-    color: #2e6da4;
-    margin-bottom: 16px;
+    font-size: 1.05rem;
+    color: #2a4a8a;
+    opacity: 0.8;
+    margin-bottom: 14px;
     display: block;
   }}
 
   .search-wrap {{
     width: 100%;
     position: relative;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
   }}
 
   #search {{
     width: 100%;
-    padding: 15px 22px;
-    font-size: 1rem;
+    padding: 14px 22px;
+    font-size: 0.97rem;
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    border: 1.5px solid #8ab8d8;
+    border: 1.5px solid rgba(42,74,138,0.35);
     border-radius: 40px;
-    background: #fff;
-    color: #1a2e44;
+    background: white;
+    color: #2a4a8a;
     outline: none;
     letter-spacing: 0.03em;
     transition: border-color 0.2s, box-shadow 0.2s;
   }}
 
   #search:focus {{
-    border-color: #1a5fa8;
-    box-shadow: 0 0 0 3px rgba(26, 95, 168, 0.12);
+    border-color: #2a4a8a;
+    box-shadow: 0 0 0 3px rgba(42,74,138,0.1);
   }}
 
   #search.has-suggestions {{
     border-radius: 22px 22px 0 0;
-    border-bottom-color: #dce9f4;
+    border-bottom-color: rgba(42,74,138,0.12);
   }}
 
-  #search::placeholder {{ color: #8aabbf; }}
+  #search::placeholder {{ color: rgba(42,74,138,0.3); }}
 
   #suggestions {{
     display: none;
     position: absolute;
     top: 100%;
     left: 0; right: 0;
-    background: #fff;
-    border: 1.5px solid #1a5fa8;
+    background: white;
+    border: 1.5px solid #2a4a8a;
     border-top: none;
     border-radius: 0 0 22px 22px;
     overflow: hidden;
     z-index: 10;
-    box-shadow: 0 8px 24px rgba(13, 59, 110, 0.12);
+    box-shadow: 0 8px 24px rgba(42,74,138,0.12);
   }}
 
   #suggestions.open {{ display: block; }}
@@ -222,162 +265,148 @@ HTML_TEMPLATE = """\
   .suggestion {{
     padding: 13px 22px;
     cursor: pointer;
-    font-size: 0.97rem;
-    font-family: 'Jost', sans-serif;
-    font-weight: 300;
-    color: #1a2e44;
-    transition: background 0.12s, color 0.12s;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.08rem;
+    color: #2a4a8a;
+    transition: background 0.1s;
     text-align: left;
-    letter-spacing: 0.02em;
   }}
 
   .suggestion:hover,
   .suggestion.active {{
-    background: #e8f3fb;
-    color: #0d3b6e;
+    background: #eee8d5;
   }}
 
   .suggestion:last-child {{ border-radius: 0 0 20px 20px; }}
 
   /* ── Result card ── */
-  #result {{
-    width: 100%;
-    max-width: 500px;
-    text-align: center;
-  }}
+  #result {{ width: 100%; }}
 
   .card {{
-    background: #fff;
-    border: 1px solid #c8dff0;
-    border-radius: 20px;
-    padding: 36px 32px;
-    box-shadow: 0 4px 24px rgba(13, 59, 110, 0.09);
-    animation: cardBloom 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+    background: white;
+    border: 1.5px solid rgba(42,74,138,0.22);
+    border-radius: 4px;
+    padding: 36px 28px;
+    text-align: center;
     position: relative;
     overflow: hidden;
+    animation: cardBloom 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
   }}
 
-  .card::before {{
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #0d3b6e, #2e86c1, #0d3b6e);
-    animation: shimmer 1s ease 0.4s both;
-  }}
-
+  /* Tile corner accents on the result card */
+  .card::before,
   .card::after {{
     content: '';
     position: absolute;
-    top: 0; left: -100%; right: auto;
-    width: 60%;
-    height: 4px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
-    animation: shimmerGloss 1s ease 0.4s both;
+    width: 50px;
+    height: 50px;
+    background: url('{tile_url}') no-repeat;
+    background-size: 50px 50px;
+    opacity: 0.55;
   }}
+  .card::before {{ top: 0; left: 0; }}
+  .card::after  {{ bottom: 0; right: 0; transform: rotate(180deg); }}
 
   @keyframes cardBloom {{
-    0%   {{ opacity: 0; transform: scale(0.88) translateY(16px); box-shadow: none; }}
-    60%  {{ opacity: 1; transform: scale(1.02) translateY(-2px); }}
-    100% {{ opacity: 1; transform: scale(1) translateY(0);       box-shadow: 0 4px 24px rgba(13,59,110,0.09); }}
+    0%   {{ opacity: 0; transform: scale(0.91) translateY(14px); }}
+    65%  {{ opacity: 1; transform: scale(1.015) translateY(-2px); }}
+    100% {{ opacity: 1; transform: scale(1) translateY(0); }}
   }}
-
-  @keyframes shimmerGloss {{
-    0%   {{ left: -60%; }}
-    100% {{ left: 140%; }}
-  }}
-
-  .table-number.counting {{ opacity: 0.4; }}
-  .table-number {{ transition: opacity 0.1s; }}
 
   .card-welcome {{
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    font-size: 0.72rem;
-    letter-spacing: 0.22em;
+    font-size: 0.63rem;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
-    color: #2e86c1;
+    color: #2a4a8a;
+    opacity: 0.5;
     margin-bottom: 10px;
   }}
 
-  .card .guest-name {{
+  .guest-name {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.7rem;
-    font-weight: 600;
-    color: #0d3b6e;
-    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 1.9rem;
+    color: #2a4a8a;
     line-height: 1.2;
+    margin-bottom: 24px;
   }}
 
-  .card .table-label {{
+  .table-label {{
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    font-size: 0.72rem;
-    letter-spacing: 0.22em;
+    font-size: 0.63rem;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
-    color: #2e86c1;
-    margin-bottom: 4px;
+    color: #2a4a8a;
+    opacity: 0.5;
+    margin-bottom: 2px;
   }}
 
-  .card .table-number {{
+  .table-number {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 3.2rem;
+    font-size: 4.5rem;
     font-weight: 400;
-    color: #1a5fa8;
+    color: #2a4a8a;
     line-height: 1;
-    margin-bottom: 6px;
   }}
 
-  .divider {{
+  .card-divider {{
     border: none;
-    border-top: 1px solid #dce9f4;
+    border-top: 1px solid rgba(42,74,138,0.15);
     margin: 22px 0;
   }}
 
-  .card .also-seated-label {{
+  .also-seated-label {{
     font-family: 'Jost', sans-serif;
     font-weight: 300;
-    font-size: 0.68rem;
-    letter-spacing: 0.2em;
+    font-size: 0.63rem;
+    letter-spacing: 0.26em;
     text-transform: uppercase;
-    color: #6a9dbf;
-    margin-bottom: 10px;
+    color: #2a4a8a;
+    opacity: 0.5;
+    margin-bottom: 12px;
   }}
 
-  .card .also-seated {{
+  .also-seated {{
     font-family: 'Cormorant Garamond', serif;
     font-size: 1rem;
-    color: #2a4d6e;
+    color: #2a4a8a;
+    opacity: 0.85;
     line-height: 1.9;
   }}
 
   .no-result {{
     font-family: 'Cormorant Garamond', serif;
     font-style: italic;
-    font-size: 1.05rem;
-    color: #6a9dbf;
+    font-size: 1rem;
+    color: #2a4a8a;
+    opacity: 0.55;
     padding: 20px 0;
   }}
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-eyebrow">You are warmly welcomed to</div>
-  <h1>Jake &amp; <em>Shir</em></h1>
-  <div class="hero-sub">Katerini &nbsp;&middot;&nbsp; Greece</div>
-  <div class="hero-divider"></div>
-</div>
+<div class="tile-strip"></div>
 
-<div class="search-section">
+<main>
+  <div class="bh">&#1489;&#x22;&#1492;</div>
+  <h1>Jake &amp; <em>Shir</em></h1>
+  <div class="ornament">&#10022; &nbsp; &#10022; &nbsp; &#10022;</div>
+  <div class="wedding-date">June 28, 2026</div>
+  <div class="wedding-location">Katerini, Olympus Riviera &middot; Greece</div>
+  <hr class="section-rule">
   <span class="search-label">Find your seat for the evening</span>
   <div class="search-wrap">
     <input id="search" type="text" placeholder="Begin typing your name&hellip;" autocomplete="off" autocorrect="off" spellcheck="false">
     <div id="suggestions"></div>
   </div>
-</div>
+  <div id="result"></div>
+</main>
 
-<div id="result"></div>
+<div class="tile-strip"></div>
 
 <script>
 const GUESTS = {guests_json};
@@ -400,10 +429,9 @@ function score(name, query) {{
   if (n === q) return 100;
   if (n.startsWith(q)) return 80;
   if (n.includes(q)) return 60;
-  const queryWords = q.split(' ');
-  const nameWords = n.split(' ');
-  if (queryWords.every(qw => nameWords.some(nw => nw.startsWith(qw)))) return 70;
-  if (queryWords.some(qw => nameWords.some(nw => nw.startsWith(qw)))) return 40;
+  const qw = q.split(' '), nw = n.split(' ');
+  if (qw.every(w => nw.some(x => x.startsWith(w)))) return 70;
+  if (qw.some(w => nw.some(x => x.startsWith(w)))) return 40;
   return 0;
 }}
 
@@ -428,8 +456,8 @@ function selectGuest(name) {{
   searchEl.value = name;
   const tableNum = GUESTS[name];
   const tablemates = (TABLES[tableNum] || []).filter(n => n !== name);
-  const tablemateStr = tablemates.length
-    ? `<hr class="divider">
+  const matesHTML = tablemates.length
+    ? `<hr class="card-divider">
        <div class="also-seated-label">Joining you at your table</div>
        <div class="also-seated">${{tablemates.join('<br>')}}</div>`
     : '';
@@ -437,23 +465,21 @@ function selectGuest(name) {{
     <div class="card-welcome">Welcome</div>
     <div class="guest-name">${{name}}</div>
     <div class="table-label">Your table</div>
-    <div class="table-number" id="tableNum">—</div>
-    ${{tablemateStr}}
+    <div class="table-number" id="tNum">—</div>
+    ${{matesHTML}}
   </div>`;
 
-  // Count-up animation to the real table number
-  const el = document.getElementById('tableNum');
-  const duration = 600;
+  // Count-up animation
+  const el = document.getElementById('tNum');
   const start = performance.now();
-  const maxNum = Math.max(12, tableNum);
+  const duration = 700;
   function tick(now) {{
     const t = Math.min((now - start) / duration, 1);
     const eased = 1 - Math.pow(1 - t, 3);
-    const display = t < 1 ? Math.round(eased * maxNum) || 1 : tableNum;
-    el.textContent = display;
+    el.textContent = t < 1 ? (Math.round(eased * Math.max(tableNum, 12)) || 1) : tableNum;
     if (t < 1) requestAnimationFrame(tick);
   }}
-  setTimeout(() => requestAnimationFrame(tick), 150);
+  setTimeout(() => requestAnimationFrame(tick), 180);
 }}
 
 function setActive(idx) {{
@@ -467,13 +493,11 @@ searchEl.addEventListener('input', () => {{
   const q = searchEl.value.trim();
   resultEl.innerHTML = '';
   if (q.length < 2) {{ closeSuggestions(); return; }}
-
   const hits = Object.entries(GUESTS)
     .map(([name, table]) => ({{ name, table, s: score(name, q) }}))
     .filter(x => x.s > 0)
     .sort((a, b) => b.s - a.s)
     .slice(0, 8);
-
   if (!hits.length) {{
     closeSuggestions();
     resultEl.innerHTML = '<p class="no-result">We couldn\'t find that name &mdash; please try a different spelling.</p>';
@@ -524,7 +548,11 @@ def main():
     guests_json = json.dumps(guest_to_table, ensure_ascii=False, indent=2)
     tables_json = json.dumps({str(k): v for k, v in table_map.items()}, ensure_ascii=False, indent=2)
 
-    html = HTML_TEMPLATE.format(guests_json=guests_json, tables_json=tables_json)
+    html = HTML_TEMPLATE.format(
+        guests_json=guests_json,
+        tables_json=tables_json,
+        tile_url=TILE_URL,
+    )
     Path(OUTPUT_FILE).write_text(html, encoding="utf-8")
     print(f"Generated {OUTPUT_FILE} — {len(guest_to_table)} guests ready.")
 
