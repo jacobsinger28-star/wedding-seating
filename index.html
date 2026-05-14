@@ -179,7 +179,7 @@
     border-radius: 20px;
     padding: 36px 32px;
     box-shadow: 0 4px 24px rgba(13, 59, 110, 0.09);
-    animation: fadeUp 0.25s ease;
+    animation: cardBloom 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     position: relative;
     overflow: hidden;
   }
@@ -190,9 +190,32 @@
     top: 0; left: 0; right: 0;
     height: 4px;
     background: linear-gradient(90deg, #0d3b6e, #2e86c1, #0d3b6e);
+    animation: shimmer 1s ease 0.4s both;
   }
 
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; right: auto;
+    width: 60%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+    animation: shimmerGloss 1s ease 0.4s both;
+  }
+
+  @keyframes cardBloom {
+    0%   { opacity: 0; transform: scale(0.88) translateY(16px); box-shadow: none; }
+    60%  { opacity: 1; transform: scale(1.02) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0);       box-shadow: 0 4px 24px rgba(13,59,110,0.09); }
+  }
+
+  @keyframes shimmerGloss {
+    0%   { left: -60%; }
+    100% { left: 140%; }
+  }
+
+  .table-number.counting { opacity: 0.4; }
+  .table-number { transition: opacity 0.1s; }
 
   .card-welcome {
     font-family: 'Jost', sans-serif;
@@ -269,7 +292,7 @@
 <div class="hero">
   <div class="hero-eyebrow">You are warmly welcomed to</div>
   <h1>Jake &amp; <em>Shir</em></h1>
-  <div class="hero-sub">Santorini &nbsp;&middot;&nbsp; Greece</div>
+  <div class="hero-sub">Katerini &nbsp;&middot;&nbsp; Greece</div>
   <div class="hero-divider"></div>
 </div>
 
@@ -583,9 +606,23 @@ function selectGuest(name) {
     <div class="card-welcome">Welcome</div>
     <div class="guest-name">${name}</div>
     <div class="table-label">Your table</div>
-    <div class="table-number">${tableNum}</div>
+    <div class="table-number" id="tableNum">—</div>
     ${tablemateStr}
   </div>`;
+
+  // Count-up animation to the real table number
+  const el = document.getElementById('tableNum');
+  const duration = 600;
+  const start = performance.now();
+  const maxNum = Math.max(12, tableNum);
+  function tick(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const display = t < 1 ? Math.round(eased * maxNum) || 1 : tableNum;
+    el.textContent = display;
+    if (t < 1) requestAnimationFrame(tick);
+  }
+  setTimeout(() => requestAnimationFrame(tick), 150);
 }
 
 function setActive(idx) {
