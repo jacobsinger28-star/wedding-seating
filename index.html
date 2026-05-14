@@ -3,71 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wedding Seating</title>
+<title>Jake & Shir's Wedding</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: 'Georgia', serif;
-    background: #fdf8f2;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    background: #f0f4f8;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 20px;
-    color: #3a2c1e;
+    padding: 0 20px 60px;
+    color: #1a2e44;
   }
 
-  header {
+  /* ── Hero banner ── */
+  .hero {
+    width: 100vw;
+    background: linear-gradient(160deg, #0d3b6e 0%, #1a5fa8 55%, #2e86c1 100%);
     text-align: center;
-    margin-bottom: 36px;
+    padding: 52px 24px 44px;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
   }
 
-  header h1 {
-    font-size: 2rem;
-    font-weight: normal;
-    letter-spacing: 0.06em;
-    color: #6b4c2a;
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Ccircle cx='30' cy='30' r='28' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1'/%3E%3C/svg%3E") repeat;
+    pointer-events: none;
   }
 
-  header p {
-    margin-top: 8px;
-    font-size: 0.95rem;
-    color: #8a6d50;
+  .hero-eyebrow {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 0.7rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: #a8d4f5;
+    margin-bottom: 14px;
+  }
+
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 400;
+    font-size: clamp(2.4rem, 7vw, 3.6rem);
+    color: #ffffff;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    margin-bottom: 10px;
+  }
+
+  .hero h1 em {
     font-style: italic;
+    color: #d4eaf7;
+  }
+
+  .hero-sub {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 0.88rem;
+    color: #a8d4f5;
+    letter-spacing: 0.12em;
+    margin-top: 6px;
+  }
+
+  .hero-divider {
+    width: 48px;
+    height: 1px;
+    background: rgba(168, 212, 245, 0.5);
+    margin: 18px auto 0;
+  }
+
+  /* ── Search area ── */
+  .search-section {
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .search-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    font-style: italic;
+    color: #2e6da4;
+    margin-bottom: 16px;
+    display: block;
   }
 
   .search-wrap {
     width: 100%;
-    max-width: 480px;
     position: relative;
     margin-bottom: 32px;
   }
 
   #search {
     width: 100%;
-    padding: 14px 20px;
-    font-size: 1.05rem;
-    font-family: inherit;
-    border: 1.5px solid #c9a97a;
+    padding: 15px 22px;
+    font-size: 1rem;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    border: 1.5px solid #8ab8d8;
     border-radius: 40px;
     background: #fff;
-    color: #3a2c1e;
+    color: #1a2e44;
     outline: none;
+    letter-spacing: 0.03em;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
 
   #search:focus {
-    border-color: #9b6f3b;
-    box-shadow: 0 0 0 3px rgba(155, 111, 59, 0.15);
+    border-color: #1a5fa8;
+    box-shadow: 0 0 0 3px rgba(26, 95, 168, 0.12);
   }
 
   #search.has-suggestions {
-    border-radius: 20px 20px 0 0;
-    border-bottom-color: #e2cdb0;
+    border-radius: 22px 22px 0 0;
+    border-bottom-color: #dce9f4;
   }
 
-  #search::placeholder { color: #b89e82; }
+  #search::placeholder { color: #8aabbf; }
 
   #suggestions {
     display: none;
@@ -75,94 +136,149 @@
     top: 100%;
     left: 0; right: 0;
     background: #fff;
-    border: 1.5px solid #9b6f3b;
+    border: 1.5px solid #1a5fa8;
     border-top: none;
-    border-radius: 0 0 20px 20px;
+    border-radius: 0 0 22px 22px;
     overflow: hidden;
     z-index: 10;
-    box-shadow: 0 6px 16px rgba(100,70,30,0.1);
+    box-shadow: 0 8px 24px rgba(13, 59, 110, 0.12);
   }
 
   #suggestions.open { display: block; }
 
   .suggestion {
-    padding: 12px 20px;
+    padding: 13px 22px;
     cursor: pointer;
-    font-size: 1rem;
-    color: #3a2c1e;
-    transition: background 0.12s;
+    font-size: 0.97rem;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    color: #1a2e44;
+    transition: background 0.12s, color 0.12s;
     text-align: left;
+    letter-spacing: 0.02em;
   }
 
   .suggestion:hover,
   .suggestion.active {
-    background: #fdf0e0;
-    color: #6b4c2a;
+    background: #e8f3fb;
+    color: #0d3b6e;
   }
 
-  .suggestion:last-child { border-radius: 0 0 18px 18px; }
+  .suggestion:last-child { border-radius: 0 0 20px 20px; }
 
+  /* ── Result card ── */
   #result {
     width: 100%;
-    max-width: 480px;
+    max-width: 500px;
     text-align: center;
   }
 
   .card {
     background: #fff;
-    border: 1px solid #e2cdb0;
-    border-radius: 16px;
-    padding: 32px 28px;
-    box-shadow: 0 2px 12px rgba(100,70,30,0.07);
-    animation: fadeIn 0.2s ease;
+    border: 1px solid #c8dff0;
+    border-radius: 20px;
+    padding: 36px 32px;
+    box-shadow: 0 4px 24px rgba(13, 59, 110, 0.09);
+    animation: fadeUp 0.25s ease;
+    position: relative;
+    overflow: hidden;
   }
 
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0d3b6e, #2e86c1, #0d3b6e);
+  }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .card-welcome {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #2e86c1;
+    margin-bottom: 10px;
+  }
 
   .card .guest-name {
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: #6b4c2a;
-    margin-bottom: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.7rem;
+    font-weight: 600;
+    color: #0d3b6e;
+    margin-bottom: 20px;
+    line-height: 1.2;
   }
 
   .card .table-label {
-    font-size: 2.4rem;
-    font-weight: bold;
-    color: #9b6f3b;
-    margin: 8px 0 16px;
-    letter-spacing: 0.04em;
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #2e86c1;
+    margin-bottom: 4px;
   }
 
-  .card .also-seated {
-    font-size: 0.82rem;
-    color: #9a8068;
-    font-style: italic;
-    line-height: 1.7;
+  .card .table-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3.2rem;
+    font-weight: 400;
+    color: #1a5fa8;
+    line-height: 1;
+    margin-bottom: 6px;
   }
 
   .divider {
     border: none;
-    border-top: 1px solid #e2cdb0;
-    margin: 14px 0;
+    border-top: 1px solid #dce9f4;
+    margin: 22px 0;
+  }
+
+  .card .also-seated-label {
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #6a9dbf;
+    margin-bottom: 10px;
+  }
+
+  .card .also-seated {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: #2a4d6e;
+    line-height: 1.9;
   }
 
   .no-result {
-    color: #9a8068;
+    font-family: 'Cormorant Garamond', serif;
     font-style: italic;
+    font-size: 1.05rem;
+    color: #6a9dbf;
     padding: 20px 0;
   }
 </style>
 </head>
 <body>
-<header>
-  <h1>&#10022; Wedding Seating &#10022;</h1>
-  <p>Type your name to find your table</p>
-</header>
 
-<div class="search-wrap">
-  <input id="search" type="text" placeholder="Your name&hellip;" autocomplete="off" autocorrect="off" spellcheck="false">
-  <div id="suggestions"></div>
+<div class="hero">
+  <div class="hero-eyebrow">You are warmly welcomed to</div>
+  <h1>Jake &amp; <em>Shir</em></h1>
+  <div class="hero-sub">Santorini &nbsp;&middot;&nbsp; Greece</div>
+  <div class="hero-divider"></div>
+</div>
+
+<div class="search-section">
+  <span class="search-label">Find your seat for the evening</span>
+  <div class="search-wrap">
+    <input id="search" type="text" placeholder="Begin typing your name&hellip;" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div id="suggestions"></div>
+  </div>
 </div>
 
 <div id="result"></div>
@@ -459,11 +575,15 @@ function selectGuest(name) {
   const tableNum = GUESTS[name];
   const tablemates = (TABLES[tableNum] || []).filter(n => n !== name);
   const tablemateStr = tablemates.length
-    ? `<hr class="divider"><div class="also-seated">Also at your table:<br>${tablemates.join(' &bull; ')}</div>`
+    ? `<hr class="divider">
+       <div class="also-seated-label">Joining you at your table</div>
+       <div class="also-seated">${tablemates.join('<br>')}</div>`
     : '';
   resultEl.innerHTML = `<div class="card">
+    <div class="card-welcome">Welcome</div>
     <div class="guest-name">${name}</div>
-    <div class="table-label">Table ${tableNum}</div>
+    <div class="table-label">Your table</div>
+    <div class="table-number">${tableNum}</div>
     ${tablemateStr}
   </div>`;
 }
@@ -488,7 +608,7 @@ searchEl.addEventListener('input', () => {
 
   if (!hits.length) {
     closeSuggestions();
-    resultEl.innerHTML = '<p class="no-result">No guest found &mdash; try a different spelling.</p>';
+    resultEl.innerHTML = '<p class="no-result">We couldn't find that name &mdash; please try a different spelling.</p>';
   } else {
     openSuggestions(hits);
   }
