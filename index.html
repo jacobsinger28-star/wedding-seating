@@ -62,7 +62,45 @@
     box-shadow: 0 0 0 3px rgba(155, 111, 59, 0.15);
   }
 
+  #search.has-suggestions {
+    border-radius: 20px 20px 0 0;
+    border-bottom-color: #e2cdb0;
+  }
+
   #search::placeholder { color: #b89e82; }
+
+  #suggestions {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid #9b6f3b;
+    border-top: none;
+    border-radius: 0 0 20px 20px;
+    overflow: hidden;
+    z-index: 10;
+    box-shadow: 0 6px 16px rgba(100,70,30,0.1);
+  }
+
+  #suggestions.open { display: block; }
+
+  .suggestion {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #3a2c1e;
+    transition: background 0.12s;
+    text-align: left;
+  }
+
+  .suggestion:hover,
+  .suggestion.active {
+    background: #fdf0e0;
+    color: #6b4c2a;
+  }
+
+  .suggestion:last-child { border-radius: 0 0 18px 18px; }
 
   #result {
     width: 100%;
@@ -75,9 +113,11 @@
     border: 1px solid #e2cdb0;
     border-radius: 16px;
     padding: 32px 28px;
-    margin-bottom: 16px;
     box-shadow: 0 2px 12px rgba(100,70,30,0.07);
+    animation: fadeIn 0.2s ease;
   }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
   .card .guest-name {
     font-size: 1.25rem;
@@ -87,7 +127,7 @@
   }
 
   .card .table-label {
-    font-size: 2.2rem;
+    font-size: 2.4rem;
     font-weight: bold;
     color: #9b6f3b;
     margin: 8px 0 16px;
@@ -98,20 +138,13 @@
     font-size: 0.82rem;
     color: #9a8068;
     font-style: italic;
-    line-height: 1.6;
+    line-height: 1.7;
   }
 
   .divider {
     border: none;
     border-top: 1px solid #e2cdb0;
     margin: 14px 0;
-  }
-
-  .multi-hint {
-    font-size: 0.85rem;
-    color: #9a8068;
-    margin-bottom: 10px;
-    font-style: italic;
   }
 
   .no-result {
@@ -129,6 +162,7 @@
 
 <div class="search-wrap">
   <input id="search" type="text" placeholder="Your name&hellip;" autocomplete="off" autocorrect="off" spellcheck="false">
+  <div id="suggestions"></div>
 </div>
 
 <div id="result"></div>
@@ -380,7 +414,11 @@ const TABLES = {
 };
 
 const searchEl = document.getElementById('search');
+const suggestionsEl = document.getElementById('suggestions');
 const resultEl = document.getElementById('result');
+
+let activeIdx = -1;
+let currentHits = [];
 
 function normalize(s) {
   return s.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -394,49 +432,89 @@ function score(name, query) {
   if (n.includes(q)) return 60;
   const queryWords = q.split(' ');
   const nameWords = n.split(' ');
-  const allMatch = queryWords.every(qw => nameWords.some(nw => nw.startsWith(qw)));
-  if (allMatch) return 70;
-  const anyMatch = queryWords.some(qw => nameWords.some(nw => nw.startsWith(qw)));
-  if (anyMatch) return 40;
+  if (queryWords.every(qw => nameWords.some(nw => nw.startsWith(qw)))) return 70;
+  if (queryWords.some(qw => nameWords.some(nw => nw.startsWith(qw)))) return 40;
   return 0;
 }
 
-function render(query) {
-  const q = query.trim();
-  if (q.length < 2) { resultEl.innerHTML = ''; return; }
-
-  const hits = Object.entries(GUESTS)
-    .map(([name, table]) => ({ name, table, s: score(name, q) }))
-    .filter(x => x.s > 0)
-    .sort((a, b) => b.s - a.s)
-    .slice(0, 5);
-
-  if (!hits.length) {
-    resultEl.innerHTML = '<p class="no-result">No guest found &mdash; try a different spelling.</p>';
-    return;
-  }
-
-  if (hits.length > 1) {
-    resultEl.innerHTML = '<p class="multi-hint">Multiple matches &mdash; keep typing to narrow down.</p>' +
-      hits.map(h => cardHTML(h.name, h.table, false)).join('');
-  } else {
-    resultEl.innerHTML = cardHTML(hits[0].name, hits[0].table, true);
-  }
+function openSuggestions(hits) {
+  currentHits = hits;
+  activeIdx = -1;
+  suggestionsEl.innerHTML = hits.map((h, i) =>
+    `<div class="suggestion" data-idx="${i}">${h.name}</div>`
+  ).join('');
+  suggestionsEl.classList.add('open');
+  searchEl.classList.add('has-suggestions');
 }
 
-function cardHTML(name, tableNum, showTablemates) {
+function closeSuggestions() {
+  suggestionsEl.classList.remove('open');
+  searchEl.classList.remove('has-suggestions');
+  activeIdx = -1;
+}
+
+function selectGuest(name) {
+  closeSuggestions();
+  searchEl.value = name;
+  const tableNum = GUESTS[name];
   const tablemates = (TABLES[tableNum] || []).filter(n => n !== name);
-  const tablemateStr = showTablemates && tablemates.length
-    ? '<hr class="divider"><div class="also-seated">Also at your table:<br>' + tablemates.join(' &bull; ') + '</div>'
+  const tablemateStr = tablemates.length
+    ? `<hr class="divider"><div class="also-seated">Also at your table:<br>${tablemates.join(' &bull; ')}</div>`
     : '';
-  return `<div class="card">
+  resultEl.innerHTML = `<div class="card">
     <div class="guest-name">${name}</div>
     <div class="table-label">Table ${tableNum}</div>
     ${tablemateStr}
   </div>`;
 }
 
-searchEl.addEventListener('input', () => render(searchEl.value));
+function setActive(idx) {
+  const items = suggestionsEl.querySelectorAll('.suggestion');
+  items.forEach(el => el.classList.remove('active'));
+  activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+  if (activeIdx >= 0) items[activeIdx].classList.add('active');
+}
+
+searchEl.addEventListener('input', () => {
+  const q = searchEl.value.trim();
+  resultEl.innerHTML = '';
+  if (q.length < 2) { closeSuggestions(); return; }
+
+  const hits = Object.entries(GUESTS)
+    .map(([name, table]) => ({ name, table, s: score(name, q) }))
+    .filter(x => x.s > 0)
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 8);
+
+  if (!hits.length) {
+    closeSuggestions();
+    resultEl.innerHTML = '<p class="no-result">No guest found &mdash; try a different spelling.</p>';
+  } else {
+    openSuggestions(hits);
+  }
+});
+
+searchEl.addEventListener('keydown', e => {
+  if (!suggestionsEl.classList.contains('open')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); setActive(activeIdx + 1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(activeIdx - 1); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (activeIdx >= 0) selectGuest(currentHits[activeIdx].name);
+    else if (currentHits.length === 1) selectGuest(currentHits[0].name);
+  }
+  else if (e.key === 'Escape') closeSuggestions();
+});
+
+suggestionsEl.addEventListener('mousedown', e => {
+  const item = e.target.closest('.suggestion');
+  if (item) { e.preventDefault(); selectGuest(currentHits[+item.dataset.idx].name); }
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) closeSuggestions();
+});
+
 searchEl.focus();
 </script>
 </body>
