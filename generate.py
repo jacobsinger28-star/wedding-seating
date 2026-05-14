@@ -490,7 +490,7 @@ searchEl.addEventListener('input', () => {{
     .slice(0, 8);
   if (!hits.length) {{
     closeSuggestions();
-    resultEl.innerHTML = '<p class="no-result">We couldn\'t find that name &mdash; please try a different spelling.</p>';
+    resultEl.innerHTML = `<p class="no-result">We could not find that name &mdash; please try a different spelling.</p>`;
   }} else {{
     openSuggestions(hits);
   }}
