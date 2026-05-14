@@ -11,53 +11,43 @@ import pandas as pd
 import json
 import re
 import sys
+import base64
 from pathlib import Path
 
 EXCEL_FILE = "Seating Chart.xlsx"
 OUTPUT_FILE = "index.html"
 
-# Mediterranean tile SVG — encodes # as %23 so it can be embedded in a CSS url()
-TILE_SVG = (
-    "<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'>"
-    "<rect width='100' height='100' fill='%23ede8d4'/>"
-    # Corner triangles
-    "<polygon points='0,0 28,0 0,28' fill='%232a4a8a'/>"
-    "<polygon points='100,0 72,0 100,28' fill='%232a4a8a'/>"
-    "<polygon points='0,100 28,100 0,72' fill='%232a4a8a'/>"
-    "<polygon points='100,100 72,100 100,72' fill='%232a4a8a'/>"
-    # White circles + dot in corners
-    "<circle cx='10' cy='10' r='7' fill='%23ede8d4'/>"
-    "<circle cx='90' cy='10' r='7' fill='%23ede8d4'/>"
-    "<circle cx='10' cy='90' r='7' fill='%23ede8d4'/>"
-    "<circle cx='90' cy='90' r='7' fill='%23ede8d4'/>"
-    "<circle cx='10' cy='10' r='3' fill='%232a4a8a'/>"
-    "<circle cx='90' cy='10' r='3' fill='%232a4a8a'/>"
-    "<circle cx='10' cy='90' r='3' fill='%232a4a8a'/>"
-    "<circle cx='90' cy='90' r='3' fill='%232a4a8a'/>"
-    # Outer octagonal frame
-    "<polygon points='28,1 72,1 99,28 99,72 72,99 28,99 1,72 1,28' "
-    "fill='none' stroke='%232a4a8a' stroke-width='2.5'/>"
-    # Inner octagonal frame
-    "<polygon points='34,10 66,10 90,34 90,66 66,90 34,90 10,66 10,34' "
-    "fill='none' stroke='%232a4a8a' stroke-width='1'/>"
-    # Four petals (cross/flower)
-    "<ellipse cx='50' cy='30' rx='7' ry='13' fill='%232a4a8a'/>"
-    "<ellipse cx='50' cy='70' rx='7' ry='13' fill='%232a4a8a'/>"
-    "<ellipse cx='30' cy='50' rx='13' ry='7' fill='%232a4a8a'/>"
-    "<ellipse cx='70' cy='50' rx='13' ry='7' fill='%232a4a8a'/>"
-    # Center medallion
-    "<circle cx='50' cy='50' r='16' fill='%232a4a8a'/>"
-    "<circle cx='50' cy='50' r='10' fill='%23ede8d4'/>"
-    "<circle cx='50' cy='50' r='5' fill='%232a4a8a'/>"
-    # Diagonal accent lines in corners
-    "<line x1='34' y1='34' x2='42' y2='42' stroke='%232a4a8a' stroke-width='1.5'/>"
-    "<line x1='66' y1='34' x2='58' y2='42' stroke='%232a4a8a' stroke-width='1.5'/>"
-    "<line x1='34' y1='66' x2='42' y2='58' stroke='%232a4a8a' stroke-width='1.5'/>"
-    "<line x1='66' y1='66' x2='58' y2='58' stroke='%232a4a8a' stroke-width='1.5'/>"
-    "</svg>"
-)
+# Mediterranean tile SVG — base64 encoded for reliable CSS embedding
+_TILE_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect width="100" height="100" fill="#ede8d4"/>
+  <polygon points="0,0 28,0 0,28" fill="#2a4a8a"/>
+  <polygon points="100,0 72,0 100,28" fill="#2a4a8a"/>
+  <polygon points="0,100 28,100 0,72" fill="#2a4a8a"/>
+  <polygon points="100,100 72,100 100,72" fill="#2a4a8a"/>
+  <circle cx="10" cy="10" r="7" fill="#ede8d4"/>
+  <circle cx="90" cy="10" r="7" fill="#ede8d4"/>
+  <circle cx="10" cy="90" r="7" fill="#ede8d4"/>
+  <circle cx="90" cy="90" r="7" fill="#ede8d4"/>
+  <circle cx="10" cy="10" r="3" fill="#2a4a8a"/>
+  <circle cx="90" cy="10" r="3" fill="#2a4a8a"/>
+  <circle cx="10" cy="90" r="3" fill="#2a4a8a"/>
+  <circle cx="90" cy="90" r="3" fill="#2a4a8a"/>
+  <polygon points="28,1 72,1 99,28 99,72 72,99 28,99 1,72 1,28" fill="none" stroke="#2a4a8a" stroke-width="2.5"/>
+  <polygon points="34,10 66,10 90,34 90,66 66,90 34,90 10,66 10,34" fill="none" stroke="#2a4a8a" stroke-width="1"/>
+  <ellipse cx="50" cy="30" rx="7" ry="13" fill="#2a4a8a"/>
+  <ellipse cx="50" cy="70" rx="7" ry="13" fill="#2a4a8a"/>
+  <ellipse cx="30" cy="50" rx="13" ry="7" fill="#2a4a8a"/>
+  <ellipse cx="70" cy="50" rx="13" ry="7" fill="#2a4a8a"/>
+  <circle cx="50" cy="50" r="16" fill="#2a4a8a"/>
+  <circle cx="50" cy="50" r="10" fill="#ede8d4"/>
+  <circle cx="50" cy="50" r="5" fill="#2a4a8a"/>
+  <line x1="34" y1="34" x2="42" y2="42" stroke="#2a4a8a" stroke-width="1.5"/>
+  <line x1="66" y1="34" x2="58" y2="42" stroke="#2a4a8a" stroke-width="1.5"/>
+  <line x1="34" y1="66" x2="42" y2="58" stroke="#2a4a8a" stroke-width="1.5"/>
+  <line x1="66" y1="66" x2="58" y2="58" stroke="#2a4a8a" stroke-width="1.5"/>
+</svg>"""
 
-TILE_URL = f"data:image/svg+xml,{TILE_SVG}"
+TILE_URL = "data:image/svg+xml;base64," + base64.b64encode(_TILE_SVG.encode()).decode()
 
 
 def parse_seating_chart(path: str) -> dict[str, int]:
