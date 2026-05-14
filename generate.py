@@ -138,20 +138,11 @@ HTML_TEMPLATE = """\
     text-align: center;
   }}
 
-  .bh {{
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.9rem;
-    color: #2a4a8a;
-    opacity: 0.5;
-    margin-bottom: 18px;
-    letter-spacing: 0.08em;
-  }}
-
   h1 {{
     font-family: 'Cormorant Garamond', serif;
     font-weight: 400;
-    font-size: clamp(3rem, 11vw, 4.4rem);
-    line-height: 1.05;
+    font-size: clamp(2.4rem, 9vw, 3.8rem);
+    line-height: 1.1;
     color: #2a4a8a;
     margin-bottom: 6px;
   }}
@@ -250,7 +241,15 @@ HTML_TEMPLATE = """\
     box-shadow: 0 8px 24px rgba(42,74,138,0.12);
   }}
 
-  #suggestions.open {{ display: block; }}
+  #suggestions.open {{
+    display: block;
+    animation: dropSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }}
+
+  @keyframes dropSlide {{
+    from {{ opacity: 0; transform: translateY(-8px); }}
+    to   {{ opacity: 1; transform: translateY(0); }}
+  }}
 
   .suggestion {{
     padding: 13px 22px;
@@ -258,8 +257,15 @@ HTML_TEMPLATE = """\
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.08rem;
     color: #2a4a8a;
-    transition: background 0.1s;
+    transition: background 0.12s;
     text-align: left;
+    opacity: 0;
+    animation: itemIn 0.22s ease forwards;
+  }}
+
+  @keyframes itemIn {{
+    from {{ opacity: 0; transform: translateX(-10px); }}
+    to   {{ opacity: 1; transform: translateX(0); }}
   }}
 
   .suggestion:hover,
@@ -298,9 +304,18 @@ HTML_TEMPLATE = """\
   .card::after  {{ bottom: 0; right: 0; transform: rotate(180deg); }}
 
   @keyframes cardBloom {{
-    0%   {{ opacity: 0; transform: scale(0.91) translateY(14px); }}
-    65%  {{ opacity: 1; transform: scale(1.015) translateY(-2px); }}
-    100% {{ opacity: 1; transform: scale(1) translateY(0); }}
+    0%   {{ opacity: 0; transform: scale(0.88) translateY(20px); box-shadow: none; }}
+    60%  {{ opacity: 1; transform: scale(1.02) translateY(-3px); box-shadow: 0 16px 48px rgba(42,74,138,0.18); }}
+    100% {{ opacity: 1; transform: scale(1) translateY(0);       box-shadow: 0 4px 20px rgba(42,74,138,0.08); }}
+  }}
+
+  .table-number.landed {{
+    animation: numBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }}
+
+  @keyframes numBounce {{
+    0%   {{ transform: scale(1.4); opacity: 0.6; }}
+    100% {{ transform: scale(1);   opacity: 1; }}
   }}
 
   .card-welcome {{
@@ -382,8 +397,7 @@ HTML_TEMPLATE = """\
 <div class="tile-strip"></div>
 
 <main>
-  <div class="bh">&#1489;&#x22;&#1492;</div>
-  <h1>Jake &amp; <em>Shir</em></h1>
+  <h1>Jake &amp; <em>Shir's</em><br>Wedding</h1>
   <div class="ornament">&#10022; &nbsp; &#10022; &nbsp; &#10022;</div>
   <div class="wedding-date">June 28, 2026</div>
   <div class="wedding-location">Katerini, Olympus Riviera &middot; Greece</div>
@@ -429,7 +443,7 @@ function openSuggestions(hits) {{
   currentHits = hits;
   activeIdx = -1;
   suggestionsEl.innerHTML = hits.map((h, i) =>
-    `<div class="suggestion" data-idx="${{i}}">${{h.name}}</div>`
+    `<div class="suggestion" data-idx="${{i}}" style="animation-delay:${{i * 40}}ms">${{h.name}}</div>`
   ).join('');
   suggestionsEl.classList.add('open');
   searchEl.classList.add('has-suggestions');
@@ -468,6 +482,7 @@ function selectGuest(name) {{
     const eased = 1 - Math.pow(1 - t, 3);
     el.textContent = t < 1 ? (Math.round(eased * Math.max(tableNum, 12)) || 1) : tableNum;
     if (t < 1) requestAnimationFrame(tick);
+    else el.classList.add('landed');
   }}
   setTimeout(() => requestAnimationFrame(tick), 180);
 }}
