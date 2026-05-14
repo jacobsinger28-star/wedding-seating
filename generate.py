@@ -397,7 +397,7 @@ HTML_TEMPLATE = """\
 <div class="tile-strip"></div>
 
 <main>
-  <h1>Jake &amp; <em>Shir's</em><br>Wedding</h1>
+  <h1>Jake &amp; Shir's<br><em>Wedding</em></h1>
   <div class="ornament">&#10022; &nbsp; &#10022; &nbsp; &#10022;</div>
   <div class="wedding-date">June 28, 2026</div>
   <div class="wedding-location">Katerini, Olympus Riviera &middot; Greece</div>
