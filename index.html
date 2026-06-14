@@ -606,6 +606,7 @@ function closeSuggestions() {
 function selectGuest(name) {
   closeSuggestions();
   searchEl.value = name;
+  searchEl.blur();
   const tableNum = GUESTS[name];
   const tablemates = (TABLES[tableNum] || []).filter(n => n !== name);
   const matesHTML = tablemates.length
